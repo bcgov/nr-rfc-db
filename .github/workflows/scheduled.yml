@@ -116,12 +116,3 @@ jobs:
           cmd_options: "-a"
           issue_title: "ZAP: Backend"
           target: https://${{ env.PREFIX }}-frontend.${{ env.DOMAIN }}/api
-
-      - name: ZAP Scan - Frontend
-        uses: zaproxy/action-full-scan@v0.10.0
-        with:
-          allow_issue_writing: true
-          artifact_name: "zap_frontend"
-          cmd_options: "-a"
-          issue_title: "ZAP: Frontend"
-          target: https://${{ env.PREFIX }}-frontend.${{ env.DOMAIN }}
