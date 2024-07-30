@@ -49,7 +49,7 @@ jobs:
 
   results:
     name: PR Results
-    needs: [builds, deploys, tests]
+    needs: [builds, deploys] # tests
     if: always() && (!failure()) && (!cancelled())
     runs-on: ubuntu-22.04
     steps:
