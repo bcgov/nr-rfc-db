@@ -1,3 +1,6 @@
+-- make sure postgis is installed
+CREATE EXTENSION postgis;
+
 -- basins
 CREATE TABLE if not exists basins (
                  basin TEXT PRIMARY KEY,
