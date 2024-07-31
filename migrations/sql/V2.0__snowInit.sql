@@ -1,5 +1,5 @@
 -- make sure postgis is installed
-CREATE EXTENSION postgis;
+-- CREATE EXTENSION postgis;
 
 -- basins
 CREATE TABLE if not exists basins (
