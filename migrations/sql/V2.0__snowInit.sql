@@ -28,7 +28,6 @@ CREATE TABLE if not exists locations (
                  latitude NUMERIC,
                  longitude NUMERIC,
                  notes TEXT,
-
                  FOREIGN KEY (basin) REFERENCES basins(basin) ON UPDATE CASCADE,
                  FOREIGN KEY (sub_basin) REFERENCES sub_basins(sub_basin) ON UPDATE CASCADE);
 
@@ -40,12 +39,12 @@ CREATE TABLE if not exists maintenance (
                  maintenance TEXT NOT NULL,
                  completed BOOLEAN NOT NULL,
                  date_completed DATE,
+                 FOREIGN KEY (location) REFERENCES locations(location) ON UPDATE cascade,
                  CONSTRAINT if_completed_then_date_is_not_null
                   CHECK (
                   (completed = FALSE AND date_completed IS NULL) OR
                   (completed = TRUE AND date_completed IS NOT NULL))
-
-                 FOREIGN KEY (location) REFERENCES locations(location) ON UPDATE CASCADE);
+                 );
 
 CREATE UNIQUE INDEX unique_location_maintenance ON maintenance (location, maintenance) WHERE completed = FALSE;
 
@@ -61,7 +60,6 @@ CREATE TABLE if not exists surveys (
                  ice_notes TEXT,
                  CONSTRAINT survey_loc UNIQUE (survey_date, location),
                  CONSTRAINT method_check CHECK (method IN ('average', 'bulk', 'standard', 'no sample')),
-
                  FOREIGN KEY (location) REFERENCES locations(location) ON UPDATE CASCADE);
 
 -- measurements
@@ -75,7 +73,6 @@ CREATE TABLE if not exists measurements (
                  depth NUMERIC,
                  average BOOLEAN,
                  notes TEXT,
-
                  FOREIGN KEY (survey_id) REFERENCES surveys(survey_id) ON DELETE CASCADE ON UPDATE CASCADE);
 
 -- means (view)
@@ -84,7 +81,7 @@ WITH measurement_counts AS (
 SELECT survey_id, COUNT(*) AS total_count 
 FROM measurements 
 GROUP BY survey_id
-),
+)
 SELECT surveys.location, locations.name, locations.sub_basin, measurements.survey_id, surveys.target_date, 
 ROUND(AVG(swe),0) AS swe, ROUND(AVG(depth),0) AS depth, MIN(sample_datetime) AS sample_datetime,
 ROUND(STDDEV(swe),1) AS swe_sd, ROUND(STDDEV(depth),1) AS depth_sd,
