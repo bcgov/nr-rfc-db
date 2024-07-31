@@ -38,6 +38,7 @@ jobs:
       triggers: ('backend/' 'migrations/')
       params:
         --set global.secrets.persist=false
+        --set-string global.secrets.databasePassword=${{ secrets.DB_PASSWORD }}
 
   # tests:
   #   name: Tests
