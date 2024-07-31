@@ -39,7 +39,6 @@ jobs:
       triggers: ('backend/' 'migrations/')
       directory: charts/app
       params:
-        --set-string global.secrets.databasePassword='${{ db_password }}'
         --set global.secrets.persist=false
 
   # tests:
