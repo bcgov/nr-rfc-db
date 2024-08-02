@@ -64,6 +64,9 @@ on:
       oc_token:
         description: OpenShift token
         required: true
+      db_password:
+        description: Database password
+        required: true
 
 jobs:
   deployer:
@@ -138,11 +141,11 @@ jobs:
       - if: steps.triggers.outputs.triggered == 'true' && inputs.atomic != 'false'
         working-directory: ${{ inputs.directory }}
         env: 
-            db_passwd: ${{ secrets.DB_PASSWORD }}
+            db_passwd: ${{ secrets.db_password }}
         run: |
           # Helm upgrade/rollout - atomic, timeout
           db_param=""
-          pswd=${{ secrets.DB_PASSWORD }}
+          pswd=${{ secrets.db_password }}
           pswd2=${{ env.db_passwd }}
           echo here here here var length ${#pswd} ${#pswd2}
           if ${{ env.db_passwd != '' }}
