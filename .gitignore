@@ -362,3 +362,4 @@ pyrightconfig.json
 
 # End of https://www.toptal.com/developers/gitignore/api/node,java,python,go
 charts/app/debug.txt
+junk.sh

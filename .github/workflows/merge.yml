@@ -43,23 +43,24 @@ jobs:
     with:
       environment: test
 
-  deploy-prod:
-    name: Deploy (prod)
-    needs: [deploy-test, vars]
-    uses: bcgov/quickstart-openshift-helpers/.github/workflows/.deployer.yml@v0.5.0
-    secrets:
-      oc_namespace: ${{ secrets.OC_NAMESPACE }}
-      oc_token: ${{ secrets.OC_TOKEN }}
-    with:
-      environment: prod
-      params:
-        --set backend.deploymentStrategy=RollingUpdate
-        --set global.autoscaling=true
-        --set frontend.pdb.enabled=true
-        --set backend.pdb.enabled=true
+  # deploy-prod:
+  #   name: Deploy (prod)
+  #   needs: [deploy-test, vars]
+  #   uses: bcgov/quickstart-openshift-helpers/.github/workflows/.deployer.yml@v0.5.0
+  #   secrets:
+  #     oc_namespace: ${{ secrets.OC_NAMESPACE }}
+  #     oc_token: ${{ secrets.OC_TOKEN }}
+  #   with:
+  #     environment: prod
+  #     params:
+  #       --set backend.deploymentStrategy=RollingUpdate
+  #       --set global.autoscaling=true
+  #       --set frontend.pdb.enabled=true
+  #       --set backend.pdb.enabled=true
+  
   promote:
     name: Promote Images
-    needs: [deploy-prod, vars]
+    needs: [vars] #[deploy-prod, vars]
     runs-on: ubuntu-22.04
     permissions:
       packages: write

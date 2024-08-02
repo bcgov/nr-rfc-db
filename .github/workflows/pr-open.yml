@@ -30,10 +30,13 @@ jobs:
   deploys:
     name: Deploys
     needs: [builds]
-    uses: bcgov/quickstart-openshift-helpers/.github/workflows/.deployer.yml@v0.5.0
+    #uses: bcgov/quickstart-openshift-helpers/.github/workflows/.deployer.yml@v0.5.0
+    # using my own deployer because want to be able to define my database password
+    uses: ./.github/workflows/.deployer.yml
     secrets:
       oc_namespace: ${{ secrets.OC_NAMESPACE }}
       oc_token: ${{ secrets.OC_TOKEN }}
+      db_password: ${{ secrets.DB_PASSWORD }}
     with:
       triggers: ('backend/' 'migrations/')
       directory: charts/app
