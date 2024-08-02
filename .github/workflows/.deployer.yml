@@ -142,7 +142,8 @@ jobs:
         run: |
           # Helm upgrade/rollout - atomic, timeout
           db_param=""
-          echo "here here here"
+          pswd=${{ secrets.DB_PASSWORD }}
+          echo here here here var length ${#pswd}
           if ${{ env.db_passwd != '' }}
             then
                 echo 'setting the database password from repo secret'
