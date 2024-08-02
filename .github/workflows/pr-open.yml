@@ -36,6 +36,7 @@ jobs:
     secrets:
       oc_namespace: ${{ secrets.OC_NAMESPACE }}
       oc_token: ${{ secrets.OC_TOKEN }}
+      db_password: ${{ secrets.DB_PASSWORD }}
     with:
       triggers: ('backend/' 'migrations/')
       directory: charts/app
