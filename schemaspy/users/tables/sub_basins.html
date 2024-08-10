@@ -207,20 +207,20 @@
                                 </thead>
                                 <tbody>
                                 <tr>
-                                    <td>enforce_dims_geom2</td>
-                                    <td>((st_ndims(polygon) &#61; 2))</td>
+                                    <td>enforce_geotype_geom2</td>
+                                    <td>((geometrytype(polygon) &#61; &#39;POLYGON&#39;::text))</td>
                                 </tr>
                                 <tr>
-                                    <td>enforce_valid_geom2</td>
-                                    <td>(st_isvalid(polygon))</td>
+                                    <td>enforce_dims_geom2</td>
+                                    <td>((st_ndims(polygon) &#61; 2))</td>
                                 </tr>
                                 <tr>
                                     <td>enforce_srid_geom2</td>
                                     <td>((st_srid(polygon) &#61; 4269))</td>
                                 </tr>
                                 <tr>
-                                    <td>enforce_geotype_geom2</td>
-                                    <td>((geometrytype(polygon) &#61; &#39;POLYGON&#39;::text))</td>
+                                    <td>enforce_valid_geom2</td>
+                                    <td>(st_isvalid(polygon))</td>
                                 </tr>
                                 </tbody>
                             </table>
