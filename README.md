@@ -67,8 +67,12 @@ Note: there are two underscore characters between number and description.
 1. having copied the login command, paste it into a wsl terminal to authenticate
 1. make sure you are in the correct namespace
     `oc projects`
+    to change to a new project it will be `oc project <project license plate>`
+
 1. list the running pods
     `oc get pods`
+
+    look for a database pod that will have a name like `nr-rfc-db-<pr number>-bitnamei-pg-0`
 1. create a ssl tunnel to the openshift database
     `oc port-forward <pod with bitnami-pg name in it> <localport>:<remote port>`
 
