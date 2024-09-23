@@ -22,7 +22,7 @@ services:
       <<: *postgres-vars
     healthcheck:
       test: ["CMD", "pg_isready", "-U", *POSTGRES_USER]
-    ports: ["5432:5432"]
+    ports: ["5433:5432"]
 
   migrations:
     image: flyway/flyway:10-alpine
