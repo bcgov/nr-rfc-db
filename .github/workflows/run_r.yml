@@ -37,7 +37,7 @@ jobs:
 
             - name: try running R
               run: |
-                 R -e 'install.packages(c("DBI", "RPostgres"))'
+                 R -e 'install.packages(c("DBI", "RPostgres", "terra"))'
                  Rscript R/basic_add_currentconditions.R
                         
             - name: Login to OC
