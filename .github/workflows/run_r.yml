@@ -26,6 +26,8 @@ jobs:
                   Rscript -e 'install.packages("RPostgres")'
 
             - name: Login to OC
+              run: |
+
                 oc login --token=${{ secrets.OC_TOKEN }} --server=${{ vars.OC_SERVER }}
                 oc project ${{ secrets.OC_NAMESPACE }} # Safeguard!
 
