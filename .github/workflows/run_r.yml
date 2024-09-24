@@ -1,0 +1,49 @@
+name: Execute R Script
+
+on:
+    schedule: [cron: "0 11 * * 6"] # 3 AM PST = 12 PM UDT, Saturdays
+    workflow_dispatch:
+    workflow_call:
+    # putting this in while testing takes place
+    push:
+        branches:
+            - feat/R-rha-data-population
+
+jobs:
+    run_r:
+        name: Run R Script
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v2
+            - name: Install R
+              uses: r-lib/actions/setup-r@v1
+              with:
+                  r-version: 4.2.3
+            - name: Install dependencies
+              run: |
+                  Rscript -e 'install.packages("DBI")'
+                  Rscript -e 'install.packages("RPostgres")'
+
+            - name: Login to OC
+                oc login --token=${{ secrets.OC_TOKEN }} --server=${{ vars.OC_SERVER }}
+                oc project ${{ secrets.OC_NAMESPACE }} # Safeguard!
+
+            - name: Set and Retrieve Github ENV variables
+              shell: bash
+              run: |
+                  # define variables      
+                  tests=16
+                  failures=2
+            
+                  # set them as GitHub ENV variables
+                  echo "Tests=$tests" >> $GITHUB_ENV
+                  echo "Failures=$failures" >> $GITHUB_ENV
+            
+                  # retrieve these GitHub ENV variables
+                  echo "${{ env.Failures }} out of ${{ env.Tests }} tests failed on CI"
+
+            - name: Run R script
+              run: |
+                  echo failures are: ${{ env.Failures }}
+                  Rscript -e 'source("script.R")'

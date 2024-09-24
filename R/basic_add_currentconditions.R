@@ -4,11 +4,12 @@
 
 library(DBI)
 
-db <- "postgres"
-db_host <- "localhost"
-db_port <- "5433" # You can use 5432 by default
-db_user <- "postgres"
-db_pass <- "default"
+# setting up the database connection parameters
+db <- Sys.getenv("POSTGRES_DB", "postgres")
+db_host <- Sys.getenv("POSTGRES_HOST", "localhost")
+db_port <- Sys.getenv("POSTGRES_PORT", "5433")
+db_user <- Sys.getenv("POSTGRES_USER", "postgres")
+db_pass <- Sys.getenv("POSTGRES_PASSWORD", "default")
 
 conn <- dbConnect(
   RPostgres::Postgres(),
@@ -23,12 +24,10 @@ print(conn)
 
 current <- read.csv("data/StationInformation.csv")
 
-dbWriteTable(conn, name = "current_conditions", value = current, overwrite = TRUE)
+# as a best practice you would be better off, using dbAppendTable so that if the table 
+# doesn't exist an error gets raised as the table should have been created by a migration
+dbWriteTable(conn, name = "hydro.current_conditions", value = current, overwrite = TRUE)
 
 dbListTables(conn)
-
-
-
-
 query <- sprintf("SELECT * FROM current_conditions")
 df <- dbGetQuery(conn, query)
