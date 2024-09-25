@@ -85,12 +85,13 @@ jobs:
                   echo "POSTGRES_PORT=$db_port" >> $GITHUB_ENV
                   echo "POSTGRES_DB=$db_name" >> $GITHUB_ENV
                   echo "POSTGRES_PASSWORD=$db_password" >> $GITHUB_ENV
+                  echo "DB_POD_NAME=$pod_name" >> $GITHUB_ENV
 
             - name: Run R script
               run: |
                   export POSTGRES_HOST=localhost
 
-                  oc port-forward $pod_name ${{ env.POSTGRES_PORT }}: ${{ env.POSTGRES_PORT }} &
+                  oc port-forward ${{ env.DB_POD_NAME }} ${{ env.POSTGRES_PORT }}: ${{ env.POSTGRES_PORT }} &
                   port_forward_pid=$!
 
                   echo database name are: ${{ env.POSTGRES_DB }}
