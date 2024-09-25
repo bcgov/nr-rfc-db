@@ -78,11 +78,12 @@ jobs:
                   db_name=$(oc get pods -o json | jq -r ".items[] | select(.metadata.name == \"$pod_name\") | .spec.containers[].env" | jq '.[] | select(.name == "POSTGRES_DATABASE") | .value' | tr -d '"')
                   
                   # get the database password
-                  db_password=$(oc get secret $db_secrets_name -o json | jq -r '.data | .POSTGRES_PASSWORD' | base64 -d)
+                  db_password=$(oc get secret $db_secrets_name -o json | jq -r '.data["postgres-password"]' | base64 -d)
 
                   # set them as GitHub ENV variables
                   echo "POSTGRES_USER=$db_user" >> $GITHUB_ENV
-                  echo "POSTGRES_PORT=$db_port" >> $GITHUB_ENV
+                  echo "POSTGRES_PORT=5444" >> $GITHUB_ENV
+                  echo "POSTGRES_PORT_OC=$db_port" >> $GITHUB_ENV
                   echo "POSTGRES_DB=$db_name" >> $GITHUB_ENV
                   echo "POSTGRES_PASSWORD=$db_password" >> $GITHUB_ENV
                   echo "DB_POD_NAME=$pod_name" >> $GITHUB_ENV
@@ -90,8 +91,9 @@ jobs:
             - name: Run R script
               run: |
                   export POSTGRES_HOST=localhost
-
-                  oc port-forward ${{ env.DB_POD_NAME }} ${{ env.POSTGRES_PORT }}:${{ env.POSTGRES_PORT }} &
+                  # POSTGRES_PORT_OC is the container port
+                  # POSTGRES_PORT is the local port
+                  oc port-forward ${{ env.DB_POD_NAME }} ${{ env.POSTGRES_PORT }}:${{ env.POSTGRES_PORT_OC }} &
                   port_forward_pid=$!
 
                   echo database name are: ${{ env.POSTGRES_DB }}

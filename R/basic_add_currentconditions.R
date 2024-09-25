@@ -26,8 +26,9 @@ current <- read.csv("data/StationInformation.csv")
 
 # as a best practice you would be better off, using dbAppendTable so that if the table 
 # doesn't exist an error gets raised as the table should have been created by a migration
-dbWriteTable(conn, name = "hydro.current_conditions", value = current, overwrite = TRUE)
+# DBI::SQL("hydro.current_conditions"),
+dbWriteTable(conn, DBI::SQL("hydro.current_conditions"), value = current, overwrite = TRUE)
 
 dbListTables(conn)
-query <- sprintf("SELECT * FROM current_conditions")
+query <- sprintf("SELECT * FROM hydro.current_conditions")
 df <- dbGetQuery(conn, query)
