@@ -35,32 +35,66 @@ jobs:
               with:
                   r-version: 4.4.1
 
-            - name: try running R
+            - name: Install R Dependencies
               run: |
-                 R -e 'install.packages(c("DBI", "RPostgres", "terra"))'
-                 Rscript R/basic_add_currentconditions.R
+                R --version
+                R -e 'install.packages(c("DBI", "RPostgres"))'
                         
             - name: Login to OC
               run: |
-
                 oc login --token=${{ secrets.OC_TOKEN }} --server=${{ vars.OC_SERVER }}
                 oc project ${{ secrets.OC_NAMESPACE }} # Safeguard!
 
             - name: Set and Retrieve Github ENV variables
               shell: bash
               run: |
-                  # define variables      
-                  tests=16
-                  failures=2
-            
+                  # extract just the repository name
+                  repo_name=$(echo ${{ github.repository }}  | cut -d'/' -f2-)
+                  echo "Repository name: $repo_name"
+                  
+                  # the the database pod name
+                  if [ ${{ github.event_name }} == 'pull_request' ];
+                  then
+                    echo "Event type: pull request"
+                    pr=${{ github.event.number }}
+                    pod_filter="$repo_name-$pr-bitnami-pg"
+                  else
+                    pr="test"
+                    # DEBUG: remove once things are working
+                    pr="7"
+                  fi
+                  pod_filter="$repo_name-$pr-bitnami-pg"
+                  db_secrets_name="$repo_name-$pr-database"
+                  echo "Pod filter: $pod_filter"
+                  
+
+                  # get the pod running the database
+
+                  pod_name=$(oc get pods -o json | jq -r ".items[] | .metadata.name" | grep $pod_filter)
+
+                  # get postgres parameters
+                  db_user=$(oc get pods -o json | jq -r ".items[] | select(.metadata.name == \"$pod_name\") | .spec.containers[].env" | jq '.[] | select(.name == "POSTGRES_USER") | .value' | tr -d '"')
+                  db_port=$(oc get pods -o json | jq -r ".items[] | select(.metadata.name == \"$pod_name\") | .spec.containers[].env" | jq '.[] | select(.name == "POSTGRESQL_PORT_NUMBER") | .value' | tr -d '"')
+                  db_name=$(oc get pods -o json | jq -r ".items[] | select(.metadata.name == \"$pod_name\") | .spec.containers[].env" | jq '.[] | select(.name == "POSTGRES_DATABASE") | .value' | tr -d '"')
+                  
+                  # get the database password
+                  db_password=$(oc get secret $db_secrets_name -o json | jq -r '.data | .POSTGRES_PASSWORD' | base64 -d)
+
                   # set them as GitHub ENV variables
-                  echo "Tests=$tests" >> $GITHUB_ENV
-                  echo "Failures=$failures" >> $GITHUB_ENV
-            
-                  # retrieve these GitHub ENV variables
-                  echo "${{ env.Failures }} out of ${{ env.Tests }} tests failed on CI"
+                  echo "POSTGRES_USER=$db_user" >> $GITHUB_ENV
+                  echo "POSTGRES_PORT=$db_port" >> $GITHUB_ENV
+                  echo "POSTGRES_DB=$db_name" >> $GITHUB_ENV
+                  echo "POSTGRES_PASSWORD=$db_password" >> $GITHUB_ENV
 
             - name: Run R script
               run: |
-                  echo failures are: ${{ env.Failures }}
-                  Rscript -e 'source("script.R")'
+                  export POSTGRES_HOST=localhost
+
+                  oc port-forward $pod_name ${{ env.POSTGRES_PORT }}: ${{ env.POSTGRES_PORT }} &
+                  port_forward_pid=$!
+
+                  echo database name are: ${{ env.POSTGRES_DB }}
+                  Rscript R/basic_add_currentconditions.R
+
+                  # close the port forward
+                  kill -9 $port_forward_pid

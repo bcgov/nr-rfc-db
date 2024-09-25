@@ -364,3 +364,5 @@ pyrightconfig.json
 charts/app/debug.txt
 junk.sh
 junk.txt
+input.json
+pods.json

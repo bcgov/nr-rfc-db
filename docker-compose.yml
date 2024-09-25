@@ -1,11 +1,11 @@
 # Reusable vars
 x-var:
   - &POSTGRES_USER
-    postgres
+    rfc_db_user
   - &POSTGRES_PASSWORD
     default
   - &POSTGRES_DATABASE
-    postgres
+    rfc_db_1
 
 # Reusable envars for postgres
 x-postgres-vars: &postgres-vars

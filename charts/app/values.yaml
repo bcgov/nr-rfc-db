@@ -214,8 +214,8 @@ bitnami-pg:
     tag: 15.7.0
   auth:
     existingSecret: '{{ .Release.Name }}-database'
-    username: 'quickstart'
-    database: quickstart
+    username: 'rfc_db_user'
+    database: rfc_db_1
   shmVolume:
     enabled: false
   backup:
@@ -241,7 +241,7 @@ bitnami-pg:
       scripts: # remove the below script, if POSTGIS is not required.
         postgis.sh: |
           #!/bin/sh
-          PGPASSWORD=$POSTGRES_PASSWORD psql -U postgres -d quickstart -c "CREATE EXTENSION postgis;"
+          PGPASSWORD=$POSTGRES_PASSWORD psql -U rfc_db_user -d rfc_db_1 -c "CREATE EXTENSION postgis;"
     resources:
       requests:
         cpu: 50m
