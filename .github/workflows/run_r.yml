@@ -96,6 +96,7 @@ jobs:
                   oc port-forward ${{ env.DB_POD_NAME }} ${{ env.POSTGRES_PORT }}:${{ env.POSTGRES_PORT_OC }} &
                   port_forward_pid=$!
                   echo database name is: ${{ env.POSTGRES_DB }}
+                  sleep 5
                   echo run db query
                   psql postgres://$POSTGRES_USER@$POSTGRES_HOST:$POSTGRES_PORT/$POSTGRES_DB -P pager=off -c "SELECT * FROM hydro.current_conditions limit 2"
                   echo done
