@@ -91,7 +91,7 @@ jobs:
               run: |
                   export POSTGRES_HOST=localhost
 
-                  oc port-forward ${{ env.DB_POD_NAME }} ${{ env.POSTGRES_PORT }}: ${{ env.POSTGRES_PORT }} &
+                  oc port-forward ${{ env.DB_POD_NAME }} ${{ env.POSTGRES_PORT }}:${{ env.POSTGRES_PORT }} &
                   port_forward_pid=$!
 
                   echo database name are: ${{ env.POSTGRES_DB }}
