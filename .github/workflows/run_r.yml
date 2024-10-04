@@ -69,6 +69,12 @@ jobs:
                   else
                     pr="test"
                   fi
+                  while [ $(oc get pod nr-rfc-db-7-bitnami-pg-0 -o json | jq '.status.phase' | tr -d '"') != 'Running' ];
+                  do
+                    echo "Waiting for database pod to be running"
+                    sleep 5
+                  done
+
                   pod_filter="$repo_name-$pr-bitnami-pg"
                   db_secrets_name="$repo_name-$pr-database"
                   echo "Pod filter: $pod_filter"
