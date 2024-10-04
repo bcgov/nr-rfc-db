@@ -1,0 +1,121 @@
+name: Execute R Script
+
+on:
+    schedule: [cron: "0 11 * * 6"] # 3 AM PST = 12 PM UDT, Saturdays
+    workflow_dispatch:
+    workflow_call:
+    # putting this in while testing takes place
+    # push:
+    #     branches:
+    #         - feat/R-rha-data-population
+
+jobs:
+    run_r:
+        name: Run R Script
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v2
+
+            - name: install r terra pre-requisites
+              run: | 
+                sudo add-apt-repository ppa:ubuntugis/ubuntugis-unstable
+                sudo apt-get update
+                sudo apt-get install libgdal-dev libgeos-dev libproj-dev
+                sudo ldconfig
+                # - name: link lib path
+                #   run: |
+                sudo ln -s /usr/lib/R/site-library /usr/local/lib/R/site-library
+                sudo ln -s /opt/R/4.2.3/bin/
+                export LD_LIBRARY_PATH=/lib:/usr/lib:/usr/local/lib
+  
+            - name: Install R
+              uses: r-lib/actions/setup-r@v2
+              with:
+                  r-version: 4.4.1
+
+            - name: Install R Dependencies
+              run: |
+                # was originally trying to use renv, but was running into issues getting terra to install
+                # properly.  Would be nice to lock up the dependencies in a lock file, and then just reproduce
+                # here, but gave up on that for now as this is a proof of concept.
+                R --version
+                R -e 'install.packages(c("DBI", "RPostgres"))'
+                        
+            - name: Login to OC
+              run: |
+                oc login --token=${{ secrets.OC_TOKEN }} --server=${{ vars.OC_SERVER }}
+                oc project ${{ secrets.OC_NAMESPACE }} # Safeguard!
+
+            - name: Set and Retrieve Github ENV variables
+              shell: bash
+              run: |
+                  # extract just the repository name
+                  repo_name=$(echo ${{ github.repository }}  | cut -d'/' -f2-)
+                  echo "Repository name: $repo_name"
+                  
+                  # When a PR is invoked the job will automatically run against the PR branch and database.
+                  if [ ${{ github.event_name }} == 'pull_request' ];
+                  then
+                    echo "Event type: pull request"
+                    pr=${{ github.event.number }}
+                    pod_filter="$repo_name-$pr-bitnami-pg"
+                  else
+                    pr="test"
+                    # DEBUG: remove once things are working
+                    pr="7"
+                  fi
+                  pod_filter="$repo_name-$pr-bitnami-pg"
+                  db_secrets_name="$repo_name-$pr-database"
+                  echo "Pod filter: $pod_filter"
+                  
+
+                  # get the pod running the database
+
+                  pod_name=$(oc get pods -o json | jq -r ".items[] | .metadata.name" | grep $pod_filter)
+
+                  # get postgres parameters
+                  db_user=$(oc get pods -o json | jq -r ".items[] | select(.metadata.name == \"$pod_name\") | .spec.containers[].env" | jq '.[] | select(.name == "POSTGRES_USER") | .value' | tr -d '"')
+                  db_port=$(oc get pods -o json | jq -r ".items[] | select(.metadata.name == \"$pod_name\") | .spec.containers[].env" | jq '.[] | select(.name == "POSTGRESQL_PORT_NUMBER") | .value' | tr -d '"')
+                  db_name=$(oc get pods -o json | jq -r ".items[] | select(.metadata.name == \"$pod_name\") | .spec.containers[].env" | jq '.[] | select(.name == "POSTGRES_DATABASE") | .value' | tr -d '"')
+                  
+                  # get the database password
+                  db_password=$(oc get secret $db_secrets_name -o json | jq -r '.data["postgres-password"]' | base64 -d)
+
+                  # set them as GitHub ENV variables
+                  echo "POSTGRES_USER=$db_user" >> $GITHUB_ENV
+                  echo "POSTGRES_PORT=5444" >> $GITHUB_ENV
+                  echo "POSTGRES_PORT_OC=$db_port" >> $GITHUB_ENV
+                  echo "POSTGRES_DB=$db_name" >> $GITHUB_ENV
+                  echo "POSTGRES_PASSWORD=$db_password" >> $GITHUB_ENV
+                  echo "DB_POD_NAME=$pod_name" >> $GITHUB_ENV
+
+            - name: Run R script
+              run: |
+                  # This step is going to create a port forward to the database pod, and then run an R script
+                  # that will load the data.  All the data in this app is public and reproduceable, therefor 
+                  # am embarking on this cludgy approach
+                  #
+                  # long term really need to wrap the database in an api
+                  # for database script, a better solution would be to create a lightweight pod with 
+                  # minimal R installed (rhub/r-minimal:4.0.5), mount a pvc, and install the dependencies
+                  # onto the pvc.  This would save a bunch of time in building a container image with the
+                  # dependencies installed (which can end up being huge, and slow to build and slow to pull).
+                  # -----------------------------------------------------------------
+                  export POSTGRES_HOST=localhost
+                  oc port-forward ${{ env.DB_POD_NAME }} ${{ env.POSTGRES_PORT }}:${{ env.POSTGRES_PORT_OC }} &
+                  port_forward_pid=$!
+                  
+                  # verifies the connection is open
+                  echo database name is: ${{ env.POSTGRES_DB }}
+                  sleep 5 # this is required or the next steps that want to use the connection will attempt to do so before the connection has actually been established.
+                  echo run db query
+                  export PGPASSWORD=$POSTGRES_PASSWORD
+                  psql postgres://$POSTGRES_USER@$POSTGRES_HOST:$POSTGRES_PORT/$POSTGRES_DB -P pager=off -c "SELECT * FROM hydro.current_conditions limit 2"
+                  echo done
+                  
+                  Rscript R/basic_add_currentconditions.R
+
+
+                  # close the port forward
+                  kill -9 $port_forward_pid
