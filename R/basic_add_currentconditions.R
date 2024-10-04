@@ -11,6 +11,8 @@ db_port <- Sys.getenv("POSTGRES_PORT", "5433")
 db_user <- Sys.getenv("POSTGRES_USER", "postgres")
 db_pass <- Sys.getenv("POSTGRES_PASSWORD", "default")
 
+print(paste("Connecting to the database",db))
+
 conn <- dbConnect(
   RPostgres::Postgres(),
   dbname = db,
