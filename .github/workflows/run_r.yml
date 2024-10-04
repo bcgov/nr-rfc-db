@@ -65,15 +65,11 @@ jobs:
                   then
                     echo "Event type: pull request"
                     pr=${{ github.event.number }}
+                    echo "PR number: $pr"
                     pod_filter="$repo_name-$pr-bitnami-pg"
                   else
                     pr="test"
                   fi
-                  while [ $(oc get pod nr-rfc-db-7-bitnami-pg-0 -o json | jq '.status.phase' | tr -d '"') != 'Running' ];
-                  do
-                    echo "Waiting for database pod to be running"
-                    sleep 5
-                  done
 
                   pod_filter="$repo_name-$pr-bitnami-pg"
                   db_secrets_name="$repo_name-$pr-database"
@@ -81,8 +77,13 @@ jobs:
                   
 
                   # get the pod running the database
-
                   pod_name=$(oc get pods -o json | jq -r ".items[] | .metadata.name" | grep $pod_filter)
+                  while [ $(oc get pods $pod_name -o json | jq '.status.phase' | tr -d '"') != 'Running' ];
+                  do
+                    echo "Waiting for database pod to be running"
+                    sleep 5
+                  done
+
 
                   # get postgres parameters
                   db_user=$(oc get pods -o json | jq -r ".items[] | select(.metadata.name == \"$pod_name\") | .spec.containers[].env" | jq '.[] | select(.name == "POSTGRES_USER") | .value' | tr -d '"')
