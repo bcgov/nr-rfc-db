@@ -4,6 +4,8 @@ on:
     schedule: [cron: "0 11 * * 6"] # 3 AM PST = 12 PM UDT, Saturdays
     workflow_dispatch:
     workflow_call:
+    pull_request:
+      
     # putting this in while testing takes place
     # push:
     #     branches:
@@ -50,6 +52,10 @@ jobs:
             - name: Set and Retrieve Github ENV variables
               shell: bash
               run: |
+                  # This step is going to set the environment variables for the database connection, if 
+                  # run as a PR it will run the R code against the PR based dev database, otherwise it 
+                  # runs again the prod database.
+                  # -------------------------------------------------------------------
                   # extract just the repository name
                   repo_name=$(echo ${{ github.repository }}  | cut -d'/' -f2-)
                   echo "Repository name: $repo_name"
@@ -62,8 +68,6 @@ jobs:
                     pod_filter="$repo_name-$pr-bitnami-pg"
                   else
                     pr="test"
-                    # DEBUG: remove once things are working
-                    pr="7"
                   fi
                   pod_filter="$repo_name-$pr-bitnami-pg"
                   db_secrets_name="$repo_name-$pr-database"
