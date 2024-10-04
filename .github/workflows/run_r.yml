@@ -5,9 +5,9 @@ on:
     workflow_dispatch:
     workflow_call:
     # putting this in while testing takes place
-    push:
-        branches:
-            - feat/R-rha-data-population
+    # push:
+    #     branches:
+    #         - feat/R-rha-data-population
 
 jobs:
     run_r:
@@ -28,7 +28,6 @@ jobs:
                 sudo ln -s /usr/lib/R/site-library /usr/local/lib/R/site-library
                 sudo ln -s /opt/R/4.2.3/bin/
                 export LD_LIBRARY_PATH=/lib:/usr/lib:/usr/local/lib
-                echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH" >> $GITHUB_ENV
   
             - name: Install R
               uses: r-lib/actions/setup-r@v2
@@ -37,6 +36,9 @@ jobs:
 
             - name: Install R Dependencies
               run: |
+                # was originally trying to use renv, but was running into issues getting terra to install
+                # properly.  Would be nice to lock up the dependencies in a lock file, and then just reproduce
+                # here, but gave up on that for now as this is a proof of concept.
                 R --version
                 R -e 'install.packages(c("DBI", "RPostgres"))'
                         
@@ -52,7 +54,7 @@ jobs:
                   repo_name=$(echo ${{ github.repository }}  | cut -d'/' -f2-)
                   echo "Repository name: $repo_name"
                   
-                  # the the database pod name
+                  # When a PR is invoked the job will automatically run against the PR branch and database.
                   if [ ${{ github.event_name }} == 'pull_request' ];
                   then
                     echo "Event type: pull request"
@@ -90,9 +92,17 @@ jobs:
 
             - name: Run R script
               run: |
+                  # This step is going to create a port forward to the database pod, and then run an R script
+                  # that will load the data.  All the data in this app is public and reproduceable, therefor 
+                  # am embarking on this cludgy approach
+                  #
+                  # long term really need to wrap the database in an api
+                  # for database script, a better solution would be to create a lightweight pod with 
+                  # minimal R installed (rhub/r-minimal:4.0.5), mount a pvc, and install the dependencies
+                  # onto the pvc.  This would save a bunch of time in building a container image with the
+                  # dependencies installed (which can end up being huge, and slow to build and slow to pull).
+                  # -----------------------------------------------------------------
                   export POSTGRES_HOST=localhost
-                  # POSTGRES_PORT_OC is the container port
-                  # POSTGRES_PORT is the local port
                   oc port-forward ${{ env.DB_POD_NAME }} ${{ env.POSTGRES_PORT }}:${{ env.POSTGRES_PORT_OC }} &
                   port_forward_pid=$!
                   
