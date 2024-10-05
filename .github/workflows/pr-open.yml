@@ -38,7 +38,7 @@ jobs:
       oc_token: ${{ secrets.OC_TOKEN }}
       db_password: ${{ secrets.DB_PASSWORD }}
     with:
-      triggers: ('backend/' 'migrations/')
+      triggers: ('backend/' 'migrations/', 'R/')
       directory: charts/app
       params:
         --set global.secrets.persist=false
@@ -51,10 +51,10 @@ jobs:
   #   with:
   #     target: ${{ github.event.number }}
 
-  # results:
-  #   name: PR Results
-  #   needs: [builds, deploys] # tests
-  #   if: always() && (!failure()) && (!cancelled())
-  #   runs-on: ubuntu-22.04
-  #   steps:
-  #     - run: echo "Success!"
+  results:
+    name: PR Results
+    needs: [builds, deploys] # tests
+    if: always() && (!failure()) && (!cancelled())
+    runs-on: ubuntu-22.04
+    steps:
+      - run: echo "Success!"
