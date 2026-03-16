@@ -130,7 +130,7 @@ api:
   dbUri: postgres://authenticator:password@database:5432/rfc_db_1
   route:
     enabled: true
-    host: "rfc-database.apps.silver.devops.gov.bc.ca/"
+    host: "rfc-database.apps.silver.devops.gov.bc.ca"
     tls:
       enabled: true
       termination: edge
@@ -144,6 +144,10 @@ web:
   servicePort: 8080
 
 migrations:
+  enabled: true
+  runAsJob: true
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 600
   image:
     repository: flyway/flyway
     tag: 10-alpine
