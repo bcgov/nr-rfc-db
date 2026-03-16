@@ -1,0 +1,24 @@
+{{- if .Values.api.route.enabled }}
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ include "rfc-database-chart.fullname" . }}-api
+  labels:
+    app.kubernetes.io/name: {{ include "rfc-database-chart.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  to:
+    kind: Service
+    name: {{ include "rfc-database-chart.fullname" . }}-api
+    weight: 100
+  port:
+    targetPort: 3000
+  {{- if .Values.api.route.host }}
+  host: {{ .Values.api.route.host | quote }}
+  {{- end }}
+  {{- if .Values.api.route.tls.enabled }}
+  tls:
+    termination: {{ .Values.api.route.tls.termination }}
+    insecureEdgeTerminationPolicy: {{ .Values.api.route.tls.insecureEdgeTerminationPolicy }}
+  {{- end }}
+{{- end }}

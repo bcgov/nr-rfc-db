@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "rfc-database-chart.fullname" . }}-migrations
+  labels:
+    app.kubernetes.io/name: {{ include "rfc-database-chart.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "rfc-database-chart.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "rfc-database-chart.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      containers:
+        - name: migrations
+          image: "{{ .Values.migrations.image.repository }}:{{ .Values.migrations.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy | default "IfNotPresent" }}
+          args:
+            - info
+            - migrate
+            - info
+          env:
+            - name: FLYWAY_URL
+              value: "{{ .Values.migrations.url }}"
+            - name: FLYWAY_USER
+              value: "{{ .Values.migrations.user }}"
+            - name: FLYWAY_PASSWORD
+              value: "{{ .Values.migrations.password }}"
+            - name: FLYWAY_DEFAULT_SCHEMA
+              value: "{{ .Values.migrations.schema }}"
+            - name: FLYWAY_BASELINE_ON_MIGRATE
+              value: "{{ .Values.migrations.baseOnMigrate }}"
+          volumeMounts:
+            - name: migrations-cm0
+              mountPath: /flyway/sql
+              readOnly: true
+      restartPolicy: OnFailure
+      volumes:
+        - name: migrations-cm0
+          configMap:
+            name: {{ include "rfc-database-chart.fullname" . }}-migrations-cm0

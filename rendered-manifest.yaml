@@ -1,0 +1,326 @@
+---
+# Source: rfc-database-chart/templates/migrations-cm0-configmap.yaml
+apiVersion: v1
+data:
+  V1.0.0__init.sql: |2
+    DO $$
+    BEGIN
+      IF current_database() <> 'rfc_db_1' THEN
+        RAISE EXCEPTION 'Refusing to run migrations on %; expected rfc_db_1', current_database();
+      END IF;
+    END $$;
+
+    CREATE EXTENSION IF NOT EXISTS postgis;
+  V2.0__testASPschema.sql: |-
+    CREATE SCHEMA IF NOT EXISTS ASP;
+
+    CREATE TABLE if not exists ASP.measurements (
+                     station_code TEXT NOT NULL,
+                     datetime TIMESTAMP WITH TIME ZONE NOT NULL,
+                     TA REAL,
+                     PC REAL,
+                     SW REAL,
+                     SD REAL,
+                     PRIMARY KEY (station_code, datetime));
+
+    -- locations
+    CREATE TABLE if not exists ASP.stations (
+                     station_code TEXT PRIMARY KEY,
+                     name TEXT NOT NULL UNIQUE,
+                     agency TEXT,
+                     active BOOLEAN,
+                     elevation NUMERIC,
+                     latitude NUMERIC,
+                     longitude NUMERIC);
+  V3.0__CreateAPIRole.sql: |2-
+    -- Role for the API to connect
+    CREATE ROLE authenticator NOINHERIT LOGIN PASSWORD 'password';
+
+    -- Role for anonymous requests
+    CREATE ROLE web_anon NOLOGIN;
+    GRANT web_anon TO authenticator;
+
+    -- Replace 'public' if your data is in a different schema
+    GRANT USAGE ON SCHEMA asp TO web_anon;
+
+    -- Grant access to all current tables
+    GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA asp TO web_anon;
+
+    -- (Optional) Grant access to future tables you might add
+    ALTER DEFAULT PRIVILEGES IN SCHEMA asp GRANT SELECT ON TABLES TO web_anon;
+kind: ConfigMap
+metadata:
+  labels:
+    io.kompose.service: migrations
+  name: migrations-cm0
+---
+# Source: rfc-database-chart/templates/database-volume-persistentvolumeclaim.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  labels:
+    io.kompose.service: database-volume
+  name: database-volume
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Mi
+---
+# Source: rfc-database-chart/templates/api-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    kompose.cmd: kompose convert --provider kubernetes -o temp-openshift-files/ -f docker-compose.yml
+    kompose.version: 1.38.0 (a8f5d1cbd)
+  labels:
+    io.kompose.service: api
+  name: api
+spec:
+  ports:
+    - name: "3000"
+      port: 3000
+      targetPort: 3000
+  selector:
+    io.kompose.service: api
+---
+# Source: rfc-database-chart/templates/database-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    kompose.cmd: kompose convert --provider kubernetes -o temp-openshift-files/ -f docker-compose.yml
+    kompose.version: 1.38.0 (a8f5d1cbd)
+  labels:
+    io.kompose.service: database
+  name: database
+spec:
+  ports:
+    - name: "5433"
+      port: 5433
+      targetPort: 5432
+  selector:
+    io.kompose.service: database
+---
+# Source: rfc-database-chart/templates/web-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    kompose.cmd: kompose convert --provider kubernetes -o temp-openshift-files/ -f docker-compose.yml
+    kompose.service.expose: "true"
+    kompose.version: 1.38.0 (a8f5d1cbd)
+  labels:
+    io.kompose.service: web
+  name: web
+spec:
+  ports:
+    - name: "8080"
+      port: 8080
+      targetPort: 3000
+  selector:
+    io.kompose.service: web
+---
+# Source: rfc-database-chart/templates/api-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert --provider kubernetes -o temp-openshift-files/ -f docker-compose.yml
+    kompose.version: 1.38.0 (a8f5d1cbd)
+  labels:
+    io.kompose.service: api
+  name: api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: api
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert --provider kubernetes -o temp-openshift-files/ -f docker-compose.yml
+        kompose.version: 1.38.0 (a8f5d1cbd)
+      labels:
+        io.kompose.service: api
+    spec:
+      containers:
+        - env:
+            - name: PGRST_DB_ANON_ROLE
+              value: web_anon
+            - name: PGRST_DB_SCHEMA
+              value: asp
+            - name: PGRST_DB_URI
+              value: postgres://authenticator:password@database:5432/rfc_db_1
+          image: postgrest/postgrest:latest
+          name: api
+          ports:
+            - containerPort: 3000
+              protocol: TCP
+      restartPolicy: Always
+---
+# Source: rfc-database-chart/templates/database-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert --provider kubernetes -o temp-openshift-files/ -f docker-compose.yml
+    kompose.version: 1.38.0 (a8f5d1cbd)
+  labels:
+    io.kompose.service: database
+  name: database
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: database
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert --provider kubernetes -o temp-openshift-files/ -f docker-compose.yml
+        kompose.version: 1.38.0 (a8f5d1cbd)
+      labels:
+        io.kompose.service: database
+    spec:
+      containers:
+        - env:
+            - name: POSTGRES_DB
+              value: rfc_db_1
+            - name: POSTGRES_HOST
+              value: database
+            - name: POSTGRES_PASSWORD
+              value: default
+            - name: POSTGRES_USER
+              value: rfc_db_user
+          image: postgis/postgis:16-3.4
+          livenessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - rfc_db_user
+          name: database
+          ports:
+            - containerPort: 5432
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data
+              name: database-volume
+      restartPolicy: Always
+      volumes:
+        - name: database-volume
+          persistentVolumeClaim:
+            claimName: database-volume
+---
+# Source: rfc-database-chart/templates/migrations-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert --provider kubernetes -o temp-openshift-files/ -f docker-compose.yml
+    kompose.version: 1.38.0 (a8f5d1cbd)
+  labels:
+    io.kompose.service: migrations
+  name: migrations
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: migrations
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert --provider kubernetes -o temp-openshift-files/ -f docker-compose.yml
+        kompose.version: 1.38.0 (a8f5d1cbd)
+      labels:
+        io.kompose.service: migrations
+    spec:
+      containers:
+        - args:
+            - info
+            - migrate
+            - info
+          env:
+            - name: FLYWAY_BASELINE_ON_MIGRATE
+              value: "true"
+            - name: FLYWAY_DEFAULT_SCHEMA
+              value: users
+            - name: FLYWAY_PASSWORD
+              value: default
+            - name: FLYWAY_URL
+              value: jdbc:postgresql://database:5432/rfc_db_1
+            - name: FLYWAY_USER
+              value: rfc_db_user
+          image: flyway/flyway:10-alpine
+          name: migrations
+          volumeMounts:
+            - mountPath: /flyway/sql
+              name: migrations-cm0
+              readOnly: true
+      restartPolicy: Always
+      volumes:
+        - configMap:
+            name: migrations-cm0
+          name: migrations-cm0
+---
+# Source: rfc-database-chart/templates/web-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert --provider kubernetes -o temp-openshift-files/ -f docker-compose.yml
+    kompose.service.expose: "true"
+    kompose.version: 1.38.0 (a8f5d1cbd)
+  labels:
+    io.kompose.service: web
+  name: web
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: web
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert --provider kubernetes -o temp-openshift-files/ -f docker-compose.yml
+        kompose.service.expose: "true"
+        kompose.version: 1.38.0 (a8f5d1cbd)
+      labels:
+        io.kompose.service: web
+    spec:
+      containers:
+        - image: my-app:latest
+          name: web
+          ports:
+            - containerPort: 3000
+              protocol: TCP
+      restartPolicy: Always
+---
+# Source: rfc-database-chart/templates/web-ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    kompose.cmd: kompose convert --provider kubernetes -o temp-openshift-files/ -f docker-compose.yml
+    kompose.service.expose: "true"
+    kompose.version: 1.38.0 (a8f5d1cbd)
+  labels:
+    io.kompose.service: web
+  name: web
+spec:
+  rules:
+    - http:
+        paths:
+          - backend:
+              service:
+                name: web
+                port:
+                  number: 8080
+            path: /
+            pathType: Prefix

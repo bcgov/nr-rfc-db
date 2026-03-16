@@ -15,16 +15,25 @@ x-postgres-vars: &postgres-vars
   POSTGRES_DB: *POSTGRES_DATABASE  #fix: POSTGRES_DATABASE changed to POSTGRES_DB, the recognized keyword for postgres database build
 
 services:
+  web:
+    image: my-app:latest
+    ports:
+      - "8080:3000"
+    labels:
+      kompose.service.expose: "true"  # This triggers Route generation
   #database service:
   #Create postgres database with name = POSTGRES_DB, user = POSTGRES_USER, and password = POSTGRES_PASSWORD
   database:
-    image: postgis/postgis:16-3.4
+    image: postgis/postgis:16-3.4   #Do we want postgis? Not sure...
     container_name: database
     environment:
       <<: *postgres-vars
     healthcheck:
       test: ["CMD", "pg_isready", "-U", *POSTGRES_USER]
     ports: ["5433:5432"]
+    volumes:  #Mapping data storage location to existing volume:
+     - database_volume:/var/lib/postgresql/data
+    
 #migrations service
 #Apply to the migrations specified by the sql files in the migrations/sql folder to create the structure of the database:
   migrations:
@@ -42,29 +51,21 @@ services:
     depends_on:
       database:
         condition: service_healthy
-
-  schemaspy:
-    image: schemaspy/schemaspy:6.2.4
-    profiles: ["schemaspy"]
-    container_name: schemaspy
-    command: -t pgsql11 -db postgres -host database -port 5432 -u postgres -p default -schemas users
+  
+  api:
+    image: postgrest/postgrest:latest
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      #postgrest not compatible with jdbc connection format
+      #PGRST_DB_URI: jdbc:postgresql://database:5432/rfc_db_1
+      PGRST_DB_URI: postgres://authenticator:password@database:5432/rfc_db_1
+      PGRST_DB_SCHEMA: asp
+      PGRST_DB_ANON_ROLE: web_anon
     depends_on:
       migrations:
         condition: service_completed_successfully
-    volumes: ["./output:/output"]
 
-  backend:
-    container_name: backend
-    depends_on:
-      migrations:
-        condition: service_started
-    entrypoint: sh -c "npm i && npm run start:dev"
-    environment:
-      <<: *postgres-vars
-      NODE_ENV: development
-    image: node:22
-    ports: ["3001:3000"]
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/api"]
-    working_dir: "/app"
-    volumes: ["./backend:/app", "/app/node_modules"]
+volumes:  #Mapping data storage location to existing volume:
+  database_volume:
