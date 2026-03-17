@@ -117,7 +117,7 @@ postgres:
   servicePort: 5433
   persistence:
     enabled: true
-    size: 100Mi
+    size: 500Mi
     storageClass: ""
     existingClaim: ""
 
