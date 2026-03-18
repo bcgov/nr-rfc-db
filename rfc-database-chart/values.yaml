@@ -127,7 +127,8 @@ api:
     tag: latest
   schema: asp
   anonRole: web_anon
-  dbUri: postgres://authenticator:password@database:5432/rfc_db_1
+  dbUri: postgres://authenticator:password@rfc-db-rfc-database-chart-database:5432/rfc_db_1
+  #dbUri: postgres://authenticator:password@database:5432/rfc_db_1
   route:
     enabled: true
     host: "rfc-database.apps.silver.devops.gov.bc.ca"
@@ -153,6 +154,6 @@ migrations:
     tag: 10-alpine
   user: rfc_db_user
   password: default
-  url: jdbc:postgresql://database:5432/rfc_db_1
+  #url: jdbc:postgresql://rfc-db-rfc-database-chart-database:5433/rfc_db_1
   schema: users
   baseOnMigrate: true

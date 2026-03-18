@@ -1,0 +1,45 @@
+---
+# Source: rfc-database-chart/templates/migrations-deployment.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: rfc-db-rfc-database-chart-migrations
+  labels:
+    app.kubernetes.io/name: rfc-database-chart
+    app.kubernetes.io/instance: rfc-db
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: rfc-database-chart
+        app.kubernetes.io/instance: rfc-db
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: migrations
+          image: "flyway/flyway:10-alpine"
+          imagePullPolicy: IfNotPresent
+          args:
+            - info
+            - migrate
+            - info
+          env:
+            - name: FLYWAY_URL
+              value: "jdbc:postgresql://database:5432/rfc_db_1"
+            - name: FLYWAY_USER
+              value: "rfc_db_user"
+            - name: FLYWAY_PASSWORD
+              value: "default"
+            - name: FLYWAY_DEFAULT_SCHEMA
+              value: "users"
+            - name: FLYWAY_BASELINE_ON_MIGRATE
+              value: "true"
+          volumeMounts:
+            - name: migrations-cm0
+              mountPath: /flyway/sql
+              readOnly: true
+      volumes:
+        - name: migrations-cm0
+          configMap:
+            name: rfc-db-rfc-database-chart-migrations-cm0

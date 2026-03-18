@@ -22,11 +22,12 @@ spec:
           image: "{{ .Values.api.image.repository }}:{{ .Values.api.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy | default "IfNotPresent" }}
           ports:
-            - containerPort: 3000
+            - name: http
+              containerPort: 3000
               protocol: TCP
           env:
             - name: PGRST_DB_URI
-              value: "{{ .Values.api.dbUri }}"
+              value: "postgres://authenticator:password@{{ .Release.Name }}-{{ .Chart.Name }}-database:{{ .Values.postgres.servicePort }}/{{ .Values.postgres.database }}"
             - name: PGRST_DB_SCHEMA
               value: "{{ .Values.api.schema }}"
             - name: PGRST_DB_ANON_ROLE
