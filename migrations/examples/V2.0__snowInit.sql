@@ -1,5 +1,5 @@
 -- make sure postgis is installed
--- CREATE EXTENSION postgis;
+CREATE EXTENSION IF NOT EXISTS postgis;
 CREATE SCHEMA IF NOT EXISTS HYDRO;
 
 

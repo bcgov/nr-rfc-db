@@ -1,0 +1,62 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "rfc-database-chart.fullname" . }}-migrations-cm0
+  labels:
+    app.kubernetes.io/name: {{ include "rfc-database-chart.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+data:
+  V1.0.0__init.sql: |2
+    DO $$
+    BEGIN
+      IF current_database() <> '{{ .Values.postgres.database }}' THEN
+        RAISE EXCEPTION 'Refusing to run migrations on %; expected {{ .Values.postgres.database }}', current_database();
+      END IF;
+    END $$;
+
+    CREATE EXTENSION IF NOT EXISTS postgis;
+  V2.0__testASPschema.sql: |-
+    CREATE SCHEMA IF NOT EXISTS ASP;
+
+    CREATE TABLE if not exists ASP.measurements (
+                     station_code TEXT NOT NULL,
+                     datetime TIMESTAMP WITH TIME ZONE NOT NULL,
+                     TA REAL,
+                     PC REAL,
+                     SW REAL,
+                     SD REAL,
+                     PRIMARY KEY (station_code, datetime));
+
+    -- locations
+    CREATE TABLE if not exists ASP.stations (
+                     station_code TEXT PRIMARY KEY,
+                     name TEXT NOT NULL UNIQUE,
+                     agency TEXT,
+                     active BOOLEAN,
+                     elevation NUMERIC,
+                     latitude NUMERIC,
+                     longitude NUMERIC);
+  V3.0__CreateAPIRole.sql: |2-
+    -- Role for the API to connect
+    CREATE ROLE authenticator NOINHERIT LOGIN PASSWORD 'password';
+
+    -- Role for anonymous requests
+    CREATE ROLE web_anon NOLOGIN;
+    GRANT web_anon TO authenticator;
+    -- The "web_user" role is for users authenticated via JWT.
+    CREATE ROLE web_user NOLOGIN NOINHERIT;
+    GRANT web_user TO authenticator;
+
+    -- Replace 'public' if your data is in a different schema
+    GRANT USAGE ON SCHEMA asp TO web_anon;
+    GRANT USAGE ON SCHEMA asp TO web_user;
+
+    -- Grant access to all current tables
+    GRANT SELECT ON ALL TABLES IN SCHEMA asp TO web_anon;
+    GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA asp TO web_user;
+    GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA asp TO web_user;
+    ALTER DEFAULT PRIVILEGES IN SCHEMA asp GRANT USAGE, SELECT ON SEQUENCES TO web_user;
+
+    -- (Optional) Grant access to future tables you might add
+    ALTER DEFAULT PRIVILEGES IN SCHEMA asp GRANT SELECT ON TABLES TO web_anon;
+    ALTER DEFAULT PRIVILEGES IN SCHEMA asp GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO web_user;
