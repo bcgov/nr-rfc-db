@@ -137,13 +137,6 @@ api:
       termination: edge
       insecureEdgeTerminationPolicy: Redirect
 
-web:
-  image:
-    repository: my-app
-    tag: latest
-  containerPort: 3000
-  servicePort: 8080
-
 migrations:
   enabled: true
   runAsJob: true

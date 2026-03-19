@@ -32,6 +32,11 @@ spec:
               value: "{{ .Values.api.schema }}"
             - name: PGRST_DB_ANON_ROLE
               value: "{{ .Values.api.anonRole }}"
+            - name: PGRST_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: postgrest-secrets
+                  key: jwt-secret
           resources:
 {{ toYaml .Values.resources | indent 12 }}
           livenessProbe:

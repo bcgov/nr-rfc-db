@@ -3,23 +3,24 @@ import datetime
 import requests
 import pandas as pd
 import numpy as np
-import NRUtil.NRObjStoreUtil as NRObjStoreUtil
-from sqlalchemy import create_engine, MetaData, Table, inspect, text
-import psycopg
+#import NRUtil.NRObjStoreUtil as NRObjStoreUtil
+#from sqlalchemy import create_engine, MetaData, Table, inspect, text
+#import psycopg
 import logging.config
 import pathlib
+import jwt
+from dotenv import load_dotenv
 
+load_dotenv()
 
-today = datetime.date.today()
-start_day = today - datetime.timedelta(days=1)
-day_str = start_day.strftime("%Y-%m-%d")
 
 logger = logging.getLogger(__name__)
 
 class db_connect:
     def __init__(self):
         host = os.getenv("PG_HOST", 'localhost')
-        port = os.getenv("PG_PORT", '5433')
+        #port = os.getenv("PG_PORT", '5433')
+        port = os.getenv("PG_PORT", '15432')
         username = os.getenv("PG_USERNAME", 'rfc_db_user')
         password = os.getenv("PG_PASSWORD", 'default')
         database = os.getenv('PG_DBNAME', 'rfc_db_1')
@@ -169,7 +170,13 @@ def get_primary_keys(base_url, table_name, schema):
 
 # Replace table entirely
 # df.to_sql('your_table_name', con=engine, if_exists='replace', index=False)
-
+def generate_token(role="web_user"):
+    payload = {
+        "role": role,
+        "exp": datetime.datetime.now(datetime.UTC) + datetime.timedelta(hours=1),
+        "iat": datetime.datetime.now(datetime.UTC)
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm="HS256")
 
 if __name__ == "__main__":
     log_config = pathlib.Path(__file__).parent / "logging.config"
@@ -177,11 +184,23 @@ if __name__ == "__main__":
     logger = logging.getLogger("main")
     logger.info("Starting")
 
-    rfc_db = db_connect()
+    #rfc_db = db_connect()
+    today = datetime.date.today()
+    start_day = today - datetime.timedelta(days=1)
+    day_str = start_day.strftime("%Y-%m-%d")
 
     ASP_data = ASP_download()
     ASP_data = ASP_data[ASP_data['datetime']>datetime.datetime.combine(start_day, datetime.time.min)]
     ASP_data['datetime'] = ASP_data['datetime'].dt.tz_localize('UTC')
+
+    # This MUST match the secret in your OpenShift Secret / postgrest.conf
+    JWT_SECRET = os.getenv("JWT_SECRET")
+
+    
+
+    # Use it in your request
+    token = generate_token()
+    headers = {"Authorization": f"Bearer {token}"}
 
     #rfc_db.upsert_df_to_postgres(df = ASP_data, table_name = 'asp.measurements')
     #Test: send data via API call
@@ -192,15 +211,18 @@ if __name__ == "__main__":
 
     # 3. API endpoint and headers
     # Replace 'localhost:3000' and 'measurements' with your actual values
-    base_url = "http://localhost:3000"
+    #base_url = "http://localhost:3000"
+    base_url = "https://rfc-database.apps.silver.devops.gov.bc.ca"
     url = f"{base_url}/measurements"
     schema = "asp"
     table_name = "measurements"
     headers = {
         "Content-Type": "application/json",
         "Content-Profile": schema,  # Specify the 'data' schema for the insert
-        "Prefer": "resolution=merge-duplicates" # This enables UPSERT logic
+        "Prefer": "resolution=merge-duplicates", # This enables UPSERT logic
+        "Authorization": f"Bearer {token}"
     }
+
     # 3. Define Parameters
     # Explicitly naming the composite key columns is best practice for clarity
     # on_conflict_str = get_primary_keys(base_url=base_url, table_name=table_name, schema=schema)
@@ -217,7 +239,7 @@ if __name__ == "__main__":
         print("Success: Data inserted.")
     else:
         print(f"Error {response.status_code}: {response.text}")
-db_content = rfc_db.query("SELECT * FROM asp.measurements")
+#db_content = rfc_db.query("SELECT * FROM asp.measurements")
 
 #Example API call to retrieve data:
 #http://localhost:3000/measurements?datetime=gte.2026-01-01&datetime=lte.2026-01-05

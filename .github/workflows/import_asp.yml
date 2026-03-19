@@ -1,0 +1,50 @@
+name: Download ASP data and upload to Database via API
+
+on:
+  # push:
+  #   branches:
+  #     - "main"
+  schedule:
+  # job should run at 9.01 pst which translates to 5pm UTC
+    - cron: '20 * * * *'
+  workflow_dispatch:
+
+jobs:
+  download_asp_climate_obs:
+    defaults:
+      run:
+        shell: bash
+    name: 'Download ASP data and upload to Database via API''
+    runs-on: ubuntu-22.04
+    environment: PROD
+    env:
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
+
+    steps:
+    - uses: actions/checkout@v3
+      id: checkout
+      with:
+       fetch-depth: 0
+
+    - uses: actions/setup-python@v4
+      with:
+        python-version: '3.13'
+
+    - id: install_dependencies
+      name: install python dependencies
+      shell: bash
+      run: |
+        pip install --upgrade pip
+        pip install -r python/requirements.txt
+
+    - id: debug
+      name: debug and list files
+      shell: bash
+      run: |
+        ls -la
+
+    - id: download_ASP
+      name: download ASP data and upload to s3
+      shell: bash
+      run: |
+        python python/ASP_download.py

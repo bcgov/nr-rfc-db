@@ -43,12 +43,20 @@ data:
     -- Role for anonymous requests
     CREATE ROLE web_anon NOLOGIN;
     GRANT web_anon TO authenticator;
+    -- The "web_user" role is for users authenticated via JWT.
+    CREATE ROLE web_user NOLOGIN NOINHERIT;
+    GRANT web_user TO authenticator;
 
     -- Replace 'public' if your data is in a different schema
     GRANT USAGE ON SCHEMA asp TO web_anon;
+    GRANT USAGE ON SCHEMA asp TO web_user;
 
     -- Grant access to all current tables
-    GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA asp TO web_anon;
+    GRANT SELECT ON ALL TABLES IN SCHEMA asp TO web_anon;
+    GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA asp TO web_user;
+    GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA asp TO web_user;
+    ALTER DEFAULT PRIVILEGES IN SCHEMA asp GRANT USAGE, SELECT ON SEQUENCES TO web_user;
 
     -- (Optional) Grant access to future tables you might add
     ALTER DEFAULT PRIVILEGES IN SCHEMA asp GRANT SELECT ON TABLES TO web_anon;
+    ALTER DEFAULT PRIVILEGES IN SCHEMA asp GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO web_user;
