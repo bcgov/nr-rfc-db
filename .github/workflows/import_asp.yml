@@ -14,9 +14,9 @@ jobs:
     defaults:
       run:
         shell: bash
-    name: 'Download ASP data and upload to Database via API''
+    name: 'Download ASP data and upload to Database via API'
     runs-on: ubuntu-22.04
-    environment: PROD
+    environment: test
     env:
       JWT_SECRET: ${{ secrets.JWT_SECRET }}
 
