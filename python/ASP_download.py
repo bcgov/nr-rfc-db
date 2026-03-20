@@ -9,9 +9,9 @@ import numpy as np
 import logging.config
 import pathlib
 import jwt
-from dotenv import load_dotenv
+#from dotenv import load_dotenv
 
-load_dotenv()
+#load_dotenv()
 
 
 logger = logging.getLogger(__name__)
