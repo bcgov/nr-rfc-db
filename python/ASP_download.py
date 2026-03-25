@@ -200,7 +200,6 @@ if __name__ == "__main__":
 
     # Use it in your request
     token = generate_token()
-    headers = {"Authorization": f"Bearer {token}"}
 
     #rfc_db.upsert_df_to_postgres(df = ASP_data, table_name = 'asp.measurements')
     #Test: send data via API call

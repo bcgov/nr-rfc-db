@@ -24,7 +24,7 @@ spec:
             - info
           env:
             - name: FLYWAY_URL
-              value: "jdbc:postgresql://{{ .Release.Name }}-{{ .Chart.Name }}-database:{{ .Values.postgres.servicePort }}/{{ .Values.postgres.database }}"
+              value: "jdbc:postgresql://{{ .Release.Name }}-{{ .Chart.Name }}-database.c207ac-dev.svc.cluster.local:{{ .Values.postgres.servicePort }}/{{ .Values.postgres.database }}"
               #value: "{{ .Values.migrations.url }}" 
             - name: FLYWAY_USER
               value: "{{ .Values.migrations.user }}"
