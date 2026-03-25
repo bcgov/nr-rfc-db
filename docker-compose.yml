@@ -15,12 +15,6 @@ x-postgres-vars: &postgres-vars
   POSTGRES_DB: *POSTGRES_DATABASE  #fix: POSTGRES_DATABASE changed to POSTGRES_DB, the recognized keyword for postgres database build
 
 services:
-  web:
-    image: my-app:latest
-    ports:
-      - "8080:3000"
-    labels:
-      kompose.service.expose: "true"  # This triggers Route generation
   #database service:
   #Create postgres database with name = POSTGRES_DB, user = POSTGRES_USER, and password = POSTGRES_PASSWORD
   database:
