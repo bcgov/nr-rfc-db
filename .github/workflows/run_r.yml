@@ -1,10 +1,10 @@
 name: Execute R Script
 
 on:
-    schedule: [cron: "0 11 * * 6"] # 3 AM PST = 12 PM UDT, Saturdays
+    #schedule: [cron: "0 11 * * 6"] # 3 AM PST = 12 PM UDT, Saturdays
     workflow_dispatch:
     workflow_call:
-    pull_request:
+    #pull_request:
       
     # putting this in while testing takes place
     # push:
