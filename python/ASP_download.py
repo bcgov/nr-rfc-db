@@ -200,7 +200,7 @@ if __name__ == "__main__":
 
     #rfc_db = db_connect()
     today = datetime.date.today()
-    start_day = today - datetime.timedelta(days=30)
+    start_day = today - datetime.timedelta(days=1)
     day_str = start_day.strftime("%Y-%m-%d")
 
     ASP_data = ASP_download()
