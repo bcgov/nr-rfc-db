@@ -9,9 +9,9 @@ import numpy as np
 import logging.config
 import pathlib
 import jwt
-#from dotenv import load_dotenv
+from dotenv import load_dotenv
 
-#load_dotenv()
+load_dotenv()
 
 
 logger = logging.getLogger(__name__)
@@ -131,7 +131,21 @@ def ASP_download():
     
     return merged_df
 
-
+def post_data(payload, url, schema, token):
+    headers = {
+        "Content-Type": "application/json",
+        "Content-Profile": schema,  # Specify the 'data' schema for the insert
+        "Prefer": "resolution=merge-duplicates", # This enables UPSERT logic
+        "Authorization": f"Bearer {token}"
+    }
+    chunk_size = 10000
+    chunked_list = [payload[i:i + chunk_size] for i in range(0, len(payload), chunk_size)]
+    for chunk in chunked_list:
+        response = requests.post(url, json=chunk, headers=headers)
+        if response.status_code == 201:
+            print("Success: Data inserted.")
+        else:
+            print(f"Error {response.status_code}: {response.text}")
 # Connection string (adjust credentials as needed)
 #engine = create_engine('postgresql+psycopg://rfc_db_user:default@localhost:5433/rfc_db_1', echo=True)
 
@@ -186,7 +200,7 @@ if __name__ == "__main__":
 
     #rfc_db = db_connect()
     today = datetime.date.today()
-    start_day = today - datetime.timedelta(days=1)
+    start_day = today - datetime.timedelta(days=30)
     day_str = start_day.strftime("%Y-%m-%d")
 
     ASP_data = ASP_download()
@@ -211,34 +225,16 @@ if __name__ == "__main__":
     # 3. API endpoint and headers
     # Replace 'localhost:3000' and 'measurements' with your actual values
     #base_url = "http://localhost:3000"
-    base_url = "https://rfc-database.apps.silver.devops.gov.bc.ca"
-    url = f"{base_url}/measurements"
-    schema = "asp"
+    #base_url = "https://rfc-database.apps.silver.devops.gov.bc.ca"
+    base_url = "https://rfc-db.apps.silver.devops.gov.bc.ca"
     table_name = "measurements"
-    headers = {
-        "Content-Type": "application/json",
-        "Content-Profile": schema,  # Specify the 'data' schema for the insert
-        "Prefer": "resolution=merge-duplicates", # This enables UPSERT logic
-        "Authorization": f"Bearer {token}"
-    }
+    url = f"{base_url}/{table_name}"
+    schema = "asp"
 
-    # 3. Define Parameters
-    # Explicitly naming the composite key columns is best practice for clarity
-    # on_conflict_str = get_primary_keys(base_url=base_url, table_name=table_name, schema=schema)
-    # params = {
-    #     "on_conflict": on_conflict_str
-    # }
-
-    # 4. Perform the POST request
-    response = requests.post(url, json=payload, headers=headers)
-    #response = requests.post(url, json=payload, headers=headers, params=params)
-
-    # Check results
-    if response.status_code == 201:
-        print("Success: Data inserted.")
-    else:
-        print(f"Error {response.status_code}: {response.text}")
+    post_data(payload=payload, url=url, schema=schema, token=token)
+    
 #db_content = rfc_db.query("SELECT * FROM asp.measurements")
 
 #Example API call to retrieve data:
 #http://localhost:3000/measurements?datetime=gte.2026-01-01&datetime=lte.2026-01-05
+#https://rfc-db.apps.silver.devops.gov.bc.ca/measurements?datetime=gte.2026-01-01&datetime=lte.2026-01-05

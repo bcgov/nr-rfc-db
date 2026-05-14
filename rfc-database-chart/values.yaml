@@ -131,7 +131,7 @@ api:
   #dbUri: postgres://authenticator:password@database:5432/rfc_db_1
   route:
     enabled: true
-    host: "rfc-database.apps.silver.devops.gov.bc.ca"
+    host: "rfc-db.apps.silver.devops.gov.bc.ca"
     tls:
       enabled: true
       termination: edge
