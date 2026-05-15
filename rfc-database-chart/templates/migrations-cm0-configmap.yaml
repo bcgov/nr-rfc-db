@@ -139,3 +139,21 @@ data:
     CREATE TRIGGER trg_refresh_percentiles
     AFTER INSERT OR UPDATE ON ASP.historical
     FOR EACH STATEMENT EXECUTE FUNCTION refresh_daily_percentiles();
+  V4.2__add_ECCC_and_FWX_tables.sql: |-
+    CREATE TABLE if not exists ASP.ECCC_raw (
+                  station_code TEXT NOT NULL,
+                  datetime TIMESTAMP WITH TIME ZONE NOT NULL,
+                  TA REAL,
+                  PC REAL,
+                  f_Read BOOLEAN,
+                  PRIMARY KEY (station_code, datetime));
+
+    CREATE TABLE if not exists ASP.FWX_raw (
+                  station_code TEXT NOT NULL,
+                  datetime TIMESTAMP WITH TIME ZONE NOT NULL,
+                  TA REAL,
+                  PC REAL,
+                  RH REAL,
+                  WS REAL,
+                  WD REAL,
+                  PRIMARY KEY (station_code, datetime));

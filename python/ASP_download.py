@@ -209,9 +209,6 @@ if __name__ == "__main__":
 
     # This MUST match the secret in your OpenShift Secret / postgrest.conf
     JWT_SECRET = os.getenv("JWT_SECRET")
-
-    
-
     # Use it in your request
     token = generate_token()
 
