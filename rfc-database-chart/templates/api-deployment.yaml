@@ -30,6 +30,8 @@ spec:
               value: "postgres://authenticator:password@{{ .Release.Name }}-{{ .Chart.Name }}-database:{{ .Values.postgres.servicePort }}/{{ .Values.postgres.database }}"
             - name: PGRST_DB_SCHEMA
               value: "{{ .Values.api.schema }}"
+            - name: PGRST_DB_CHANNEL_ENABLED
+              value: "true" 
             - name: PGRST_DB_ANON_ROLE
               value: "{{ .Values.api.anonRole }}"
             - name: PGRST_JWT_SECRET

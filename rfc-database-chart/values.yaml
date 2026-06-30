@@ -108,8 +108,10 @@ affinity: {}
 
 postgres:
   image:
-    repository: postgis/postgis
-    tag: "16-3.4"
+    repository: timescale/timescaledb
+    tag: "latest-pg16"
+    #repository: postgis/postgis
+    #tag: "16-3.4"
   database: rfc_db_1
   user: rfc_db_user
   password: default
@@ -131,7 +133,7 @@ api:
   #dbUri: postgres://authenticator:password@database:5432/rfc_db_1
   route:
     enabled: true
-    host: "rfc-db.apps.silver.devops.gov.bc.ca"
+    host: "rfc-db-dev.apps.silver.devops.gov.bc.ca"
     tls:
       enabled: true
       termination: edge

@@ -223,7 +223,7 @@ if __name__ == "__main__":
     # Replace 'localhost:3000' and 'measurements' with your actual values
     #base_url = "http://localhost:3000"
     #base_url = "https://rfc-database.apps.silver.devops.gov.bc.ca"
-    base_url = "https://rfc-db.apps.silver.devops.gov.bc.ca"
+    base_url = "https://rfc-db-dev.apps.silver.devops.gov.bc.ca"
     table_name = "measurements"
     url = f"{base_url}/{table_name}"
     schema = "asp"

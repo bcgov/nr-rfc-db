@@ -157,3 +157,28 @@ data:
                   WS REAL,
                   WD REAL,
                   PRIMARY KEY (station_code, datetime));
+    
+    CREATE TABLE if not exists ASP.NWP_forecast (
+                 model TEXT NOT NULL,
+                 runtime TIMESTAMP WITH TIME ZONE NOT NULL,
+                 datetime TIMESTAMP WITH TIME ZONE NOT NULL,
+                 rfc_id TEXT NOT NULL,
+                 TA REAL,
+                 PC REAL,
+                 PRIMARY KEY (model, runtime, datetime, rfc_id));
+
+    -- 2. Convert the table into a TimescaleDB hypertable partitioned by the 'datetime' column
+    SELECT create_hypertable('ASP.NWP_forecast', by_range('runtime', INTERVAL '7 days'));
+
+    -- 3. Re-create a composite primary key that includes the partitioning column
+    ALTER TABLE ASP.NWP_forecast ADD PRIMARY KEY (model, runtime, datetime, rfc_id);
+
+    -- 4. Enable compression settings optimized for weather/NWP data
+    ALTER TABLE ASP.NWP_forecast SET (
+        timescaledb.compress,
+        timescaledb.compress_segmentby = 'model, rfc_id',
+        timescaledb.compress_orderby = 'datetime DESC, runtime DESC'
+    );
+
+    -- 5. Add an automatic policy to compress data older than 7 days
+    SELECT add_compression_policy('ASP.NWP_forecast', INTERVAL '7 days');

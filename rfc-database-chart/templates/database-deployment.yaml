@@ -7,6 +7,8 @@ metadata:
     app.kubernetes.io/instance: {{ .Release.Name }}
 spec:
   replicas: {{ .Values.replicaCount }}
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app.kubernetes.io/name: {{ include "rfc-database-chart.name" . }}
@@ -28,6 +30,8 @@ spec:
               value: "{{ .Values.postgres.user }}"
             - name: POSTGRES_PASSWORD
               value: "{{ .Values.postgres.password }}"
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
           ports:
             - containerPort: {{ .Values.postgres.port }}
               protocol: TCP
@@ -43,6 +47,7 @@ spec:
                 - "{{ .Values.postgres.user }}"
             initialDelaySeconds: 30
             periodSeconds: 10
+            failureThreshold: 7
           readinessProbe:
             exec:
               command:

@@ -42,6 +42,53 @@ def get_asp_metadata():
         [['station_code', 'name', 'agency', 'active', 'elevation', 'longitude', 'latitude']]
     )
     meta = meta[meta['active'] == True]
+    meta['network'] = 'BC Snow Program'
+    return meta
+
+def get_fwx_metadata():
+    resource_url = "https://www.for.gov.bc.ca/ftp/HPR/external/!publish/BCWS_DATA_MART/2023/2023_BCWS_WX_STATIONS.csv"
+    fwx_data = pd.read_csv(resource_url)
+    meta = (
+        fwx_data
+        # rename() equivalent
+        .rename(columns={
+            'STATION_CODE': 'station_code',
+            'STATION_NAME': 'name',
+            'ELEVATION_M': 'elevation',
+            'LATITUDE': 'latitude',
+            'LONGITUDE': 'longitude'
+        })
+        # select() equivalent
+        [['station_code', 'name', 'elevation', 'longitude', 'latitude']]
+    )
+    meta['elevation'] = meta['elevation'].replace({pd.NA: 0, np.nan: 0})
+    meta['network'] = 'BC Wildfire Service'
+    meta['active'] = True
+    return meta
+
+def get_eccc_metadata():
+    resource_url = "https://hpfx.collab.science.gc.ca/today/observations/doc/swob-xml_station_list.csv"
+    eccc_data = pd.read_csv(resource_url)
+    geog_to_keep = ['British Columbia', 'Yukon']
+    eccc_data = eccc_data[eccc_data['Province/Territory'].isin(geog_to_keep)]
+    meta = (
+        eccc_data
+        # rename() equivalent
+        .rename(columns={
+            'IATA_ID': 'station_code',
+            'Name': 'name',
+            'Data_Provider': 'agency',
+            'Elevation(m)': 'elevation',
+            'Latitude': 'latitude',
+            'Longitude': 'longitude'
+        })
+        # select() equivalent
+        [['station_code', 'name', 'agency', 'elevation', 'longitude', 'latitude']]
+    )
+    meta['network'] = 'Environment and Climate Change Canada'
+    meta['elevation'] = meta['elevation'].replace({pd.NA: 0, np.nan: 0})
+    meta['active'] = True
+    meta['station_code'] = meta['station_code'].str[1:] # Remove any leading/trailing whitespace
     return meta
 
 def get_swe_historical_data():
@@ -99,19 +146,34 @@ def insert_metadata(data_df, table_name, api_url, token=None):
 # This MUST match the secret in your OpenShift Secret / postgrest.conf
 JWT_SECRET = os.getenv("JWT_SECRET")
 
+if True:
+    token = generate_token()
+    local_db_url = "http://localhost:3000"
+    openshift_db_url = "https://rfc-db-dev.apps.silver.devops.gov.bc.ca"
 
-token = generate_token()
-local_db_url = "http://localhost:3000"
-openshift_db_url = "https://rfc-database.apps.silver.devops.gov.bc.ca"
-
-hist = get_swe_historical_data()
-table_name = "historical"
-#insert_metadata(hist, table_name, local_db_url)
-insert_metadata(hist, table_name, openshift_db_url, token)
+if True:
+    hist = get_swe_historical_data()
+    table_name = "historical"
+    #insert_metadata(hist, table_name, local_db_url)
+    insert_metadata(hist, table_name, openshift_db_url, token)
 
 if False:
-    meta = get_asp_metadata()
+    meta1 = get_asp_metadata()
+    meta2 = get_fwx_metadata()
+    meta3 = get_eccc_metadata()
+    meta_climateobs = pd.read_csv("data/ClimateOBS_metadata.csv")
+    meta_climateobs = meta_climateobs.rename(columns={
+        'STATION_CODE': 'station_code',
+        'RFC_ID': 'rfc_id'
+    })[['station_code', 'rfc_id']]
+    meta = pd.concat([meta1, meta2, meta3], ignore_index=True)
+    meta = meta.drop_duplicates(subset=['station_code'])
+    meta['station_code'] = meta['station_code'].astype(str)
+    meta = meta.merge(meta_climateobs, on='station_code', how='left')
+    meta = meta.replace({pd.NA: None, np.nan: None})
+    counts = meta.groupby('name').cumcount().add(1).astype(str)
+    meta['name'] = meta['name'].astype(str) + counts.mask(counts == '1', '')
     print(meta.head())
     table_name = "stations"
-    insert_metadata(meta, table_name, local_db_url)
+    insert_metadata(meta, table_name, openshift_db_url, token)
     #insert_metadata(meta, table_name, openshift_db_url, token)
